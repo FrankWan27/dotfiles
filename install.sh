@@ -18,6 +18,7 @@ link() {
 }
 
 link ".zshrc" "$HOME/.zshrc"
+link ".p10k.zsh" "$HOME/.p10k.zsh"
 link "wezterm/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
 
 echo "Done."
