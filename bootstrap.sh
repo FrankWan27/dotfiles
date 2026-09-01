@@ -67,20 +67,37 @@ fi
 # 3. Powerlevel10k theme + custom plugins
 # ----------------------------------------------------------------------------
 clone_or_pull() {
-  local url="$1" dest="$2"
+  local url="$1" dest="$2" ref="${3:-}"
   if [[ -d "$dest/.git" ]]; then
-    log "Updating $(basename "$dest")..."
-    git -C "$dest" pull --ff-only --quiet || warn "Could not fast-forward $dest"
+    if [[ -n "$ref" ]]; then
+      log "Pinning $(basename "$dest") to $ref..."
+      git -C "$dest" fetch --quiet origin "$ref" 2>/dev/null || git -C "$dest" fetch --quiet origin
+      git -C "$dest" checkout --quiet "$ref" || warn "Could not check out $ref in $dest"
+    else
+      log "Updating $(basename "$dest")..."
+      git -C "$dest" pull --ff-only --quiet || warn "Could not fast-forward $dest"
+    fi
   else
     log "Cloning $(basename "$dest")..."
-    git clone --depth=1 "$url" "$dest"
+    if [[ -n "$ref" ]]; then
+      # Pinned to a specific commit: full clone (can't --depth a bare SHA reliably), then checkout.
+      git clone --quiet "$url" "$dest"
+      git -C "$dest" checkout --quiet "$ref" || warn "Could not check out $ref in $dest"
+    else
+      git clone --depth=1 --quiet "$url" "$dest"
+    fi
   fi
 }
+
+# zsh-autocomplete's upstream HEAD periodically ships commits that reference
+# helper functions undefined on zsh 5.8.1, which spams "command not found" on
+# every keypress. Pin to a commit known-good on zsh 5.8.1.
+ZSH_AUTOCOMPLETE_REF="bbba73e"
 
 clone_or_pull https://github.com/romkatv/powerlevel10k.git                     "$ZSH_CUSTOM/themes/powerlevel10k"
 clone_or_pull https://github.com/zsh-users/zsh-autosuggestions.git             "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 clone_or_pull https://github.com/zdharma-continuum/fast-syntax-highlighting.git "$ZSH_CUSTOM/plugins/fast-syntax-highlighting"
-clone_or_pull https://github.com/marlonrichert/zsh-autocomplete.git            "$ZSH_CUSTOM/plugins/zsh-autocomplete"
+clone_or_pull https://github.com/marlonrichert/zsh-autocomplete.git            "$ZSH_CUSTOM/plugins/zsh-autocomplete" "$ZSH_AUTOCOMPLETE_REF"
 
 # ----------------------------------------------------------------------------
 # 4. MesloLGS NF Nerd Font (recommended by Powerlevel10k)
